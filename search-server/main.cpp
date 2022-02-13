@@ -335,8 +335,12 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
     }
 }
 void TestAddDocument() {
-    const int doc_id = 42;
-    const string content = "cat in the city"s;
+    const int doc_id_1 = 1;
+    const int doc_id_2 = 2;
+    const int doc_id_3 = 3;
+    const string content_1 = "cat in the city"s;
+    const string content_2 = "dog in the city"s;
+    const string content_3 = "cat in the countryside"s;
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
@@ -345,11 +349,20 @@ void TestAddDocument() {
     }
     {
         SearchServer server;
-        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        const auto add_documents = server.FindTopDocuments("cat"s);
-        ASSERT_EQUAL(add_documents.size(), 1);
-        ASSERT_EQUAL_HINT(add_documents[0].id, 42, "Mismatched ID");
-        ASSERT_EQUAL_HINT(add_documents[0].rating, 2, "Wrong rating");
+        server.AddDocument(doc_id_1, content_1, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(doc_id_2, content_2, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(doc_id_3, content_3, DocumentStatus::ACTUAL, ratings);
+        const auto add_documents_cat = server.FindTopDocuments("cat"s);
+        const auto add_documents_dog = server.FindTopDocuments("dog"s);
+        ASSERT_EQUAL(add_documents_cat.size(), 2);
+        ASSERT_EQUAL_HINT(add_documents_cat[0].id, 1, "Mismatched ID");
+        ASSERT_EQUAL_HINT(add_documents_cat[1].id, 3, "Mismatched ID");
+        ASSERT_EQUAL_HINT(add_documents_cat[0].rating, 2, "Wrong rating");
+        ASSERT_EQUAL_HINT(add_documents_cat[1].rating, 2, "Wrong rating");
+        ASSERT_EQUAL(add_documents_dog.size(), 1);
+        ASSERT_EQUAL_HINT(add_documents_dog[0].id, 2, "Mismatched ID");
+        ASSERT_EQUAL_HINT(add_documents_dog[0].rating, 2, "Wrong rating");
+        
     }
 }
 
@@ -357,7 +370,6 @@ void TestExcludeDocumentWithMinusWords() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const vector<int> ratings = { 1, 2, 3 };
-
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
@@ -369,35 +381,56 @@ void TestExcludeDocumentWithMinusWords() {
     }
 
 }
+
 void TestMatchingDocuments() {
 
+        SearchServer test_server;
+        test_server.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+        test_server.AddDocument(1, "cat in the city"s, DocumentStatus::IRRELEVANT, { 2, 2, 2 });
+        test_server.AddDocument(2, "cat in the city"s, DocumentStatus::BANNED, { 2, 2, 2 });
+        test_server.AddDocument(3, "cat in the city"s, DocumentStatus::REMOVED, { 2, 2, 2 });
+        const auto find_documents_actual = test_server.FindTopDocuments("cat city");
+        ASSERT_HINT( find_documents_actual[0].id == 0, "Incorrect search by status"s);
+        const auto find_documents_irrleveant = test_server.FindTopDocuments("cat city", DocumentStatus::IRRELEVANT);
+        ASSERT_HINT(find_documents_irrleveant[0].id == 1, "Incorrect search by status"s);
+        const auto find_documents_banned = test_server.FindTopDocuments("cat city", DocumentStatus::BANNED);
+        ASSERT_HINT(find_documents_banned[0].id == 2, "Incorrect search by status"s);
+        const auto find_documents_removed = test_server.FindTopDocuments("cat city", DocumentStatus::REMOVED);
+        ASSERT_HINT(find_documents_removed[0].id == 3, "Incorrect search by status"s);
+       
+}
 
-    {
-        SearchServer test_server_sort;
-        test_server_sort.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
-        test_server_sort.AddDocument(1, "dog in the city"s, DocumentStatus::ACTUAL, { 2, 2, 2 });
-        const auto find_documents_1 = test_server_sort.FindTopDocuments("cat city");
-        ASSERT_HINT(find_documents_1[0].id == 0, "Incorrect sorting by relevance");
-        ASSERT_HINT((find_documents_1[0].relevance - 0.173286) < EPSILON, " Wrong relevance");
-        ASSERT_HINT(find_documents_1[1].id == 1, "Incorrect sorting by relevance");
-    }
+void TestRelevance() {
 
-    {
-        SearchServer server;
-        server.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
-        server.AddDocument(1, "cat in the countryside"s, DocumentStatus::BANNED, { 3, 3, 3 });
-        const auto find_documents_1 = server.FindTopDocuments("cat city");
-        ASSERT(find_documents_1[0].id == 0);
-        ASSERT_HINT(find_documents_1.size() == 1, "Find BANNED documents without request");
-        const auto find_documents_2 = server.FindTopDocuments("cat city", DocumentStatus::BANNED);
-        ASSERT(find_documents_2[0].id == 1);
-        ASSERT_HINT(find_documents_2.size() == 1, "Error in the search by status");
-        const auto find_documents_3 = server.FindTopDocuments("cat city", DocumentStatus::REMOVED);
-        ASSERT_HINT(find_documents_3.size() == 0, "Error in the search by status");
+    SearchServer test_server;
+    test_server.AddDocument(0, "white cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+    test_server.AddDocument(1, "brown dog in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+    test_server.AddDocument(2, "black cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+    const auto find_documents = test_server.FindTopDocuments("white cat city"s);// log(3) log(3/2) log(1)
 
-    }
+    ASSERT_HINT(find_documents[0].id == 0, "Wrong relevance sort"s);
+    ASSERT_HINT(find_documents[1].id == 2, "Wrong relevance sort"s);
+    ASSERT_HINT(find_documents[2].id == 1, "Wrong relevance sort"s);
+    
+    const double relevance_1 = ((log(3.0) * 1.0 / 5.0) + (log(3.0 / 2.0) * 1.0 / 5.0) + (log(1.0) * 1.0 / 5.0));
+    const double relevance_2 = (log(1.0) * 1.0 / 5.0);
+    const double relevance_3 = ((log(3.0 / 2.0) * 1.0 / 5.0) + (log(1.0) * 1.0 / 5.0));
+    ASSERT_HINT((find_documents[0].relevance-relevance_1)<EPSILON,"Wrong relevane calculate"s);
+    ASSERT_HINT((find_documents[1].relevance - relevance_3) < EPSILON, "Wrong relevane calculate"s);
+    ASSERT_HINT((find_documents[2].relevance - relevance_2) < EPSILON, "Wrong relevane calculate"s);   
+}
 
+void TestRating() {
+    SearchServer test_server;
+    test_server.AddDocument(0, "white cat in the city"s, DocumentStatus::ACTUAL, { -2, 14, 0 }); //4
+    test_server.AddDocument(1, "white cat in the city"s, DocumentStatus::ACTUAL, { 2, 2}); //2
+    test_server.AddDocument(2, "white cat in the city"s, DocumentStatus::ACTUAL, { 0});        //0
 
+    const auto find_documents = test_server.FindTopDocuments("cat"s);
+
+    ASSERT_HINT(find_documents[0].rating == 4, "Wrong rating calculation");
+    ASSERT_HINT(find_documents[1].rating == 2, "Wrong rating calculation");
+    ASSERT_HINT(find_documents[2].rating == 0, "Wrong rating calculation");
 
 }
 
@@ -408,9 +441,11 @@ void TestMatchingDocuments() {
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);// тест работы стоп слов
-    RUN_TEST(TestAddDocument); // тест добавления документов и вычисление среднего рейтинга
+    RUN_TEST(TestAddDocument); // тест добавления документов 
     RUN_TEST(TestExcludeDocumentWithMinusWords); // тест поддержки минус слов
-    RUN_TEST(TestMatchingDocuments); // тест поиска, поиска с заданым статусом, и выдачи по релевантности,
+    RUN_TEST(TestMatchingDocuments); // тест  поиска с заданым статусом
+    RUN_TEST(TestRelevance); // тест подсчета релевантноси и сортировки по релевантности
+    RUN_TEST(TestRating); // тест подсчета рейтинга
 
     // Не забудьте вызывать остальные тесты здесь
 }
