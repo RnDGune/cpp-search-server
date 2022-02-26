@@ -83,8 +83,7 @@ enum class DocumentStatus {
 
 class SearchServer {
 public:
-    inline static constexpr int INVALID_DOCUMENT_ID = -1;
-
+    
     SearchServer() = default;
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
@@ -98,6 +97,7 @@ public:
         : SearchServer(SplitIntoWords(stop_words_text))
     {         
     }
+
     void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
         if (!IsValidWord(document) || document_id < 0 || documents_.count(document_id) > 0) {
             throw invalid_argument("incorrect Document");
@@ -232,12 +232,12 @@ private:
     QueryWord ParseQueryWord(string text) const {
         bool is_minus = false;
         if (text[0] == '-') {
-            if (text[1] == '-') {
-                throw invalid_argument("incorrect query");
-            }
             is_minus = true;
             text = text.substr(1);
             if (text.empty()) {
+                throw invalid_argument("incorrect query");
+            }
+            if (text[0] == '-') {
                 throw invalid_argument("incorrect query");
             }
         }
