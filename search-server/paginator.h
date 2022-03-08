@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 
 template <typename Iterator>
@@ -39,6 +40,7 @@ class Paginator {
 public:
     Paginator() = default;
     Paginator(Iterator begin, Iterator end, size_t page_size) {
+        assert(page_size>0 && end>=begin);
         for (size_t left = distance(begin, end); left > 0;) {
             const size_t current_page_size = std::min(page_size, left);
             const Iterator current_page_end = std::next(begin, current_page_size);

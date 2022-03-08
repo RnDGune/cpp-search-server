@@ -6,30 +6,25 @@ RequestQueue::RequestQueue(const SearchServer& search_server)
      , current_time_(0) {
 }
     
-template <typename DocumentPredicate>
-std::vector<Document>  RequestQueue::AddFindRequest(const  std::string& raw_query, DocumentPredicate document_predicate) {
-     const auto result = search_server_.FindTopDocuments(raw_query, document_predicate);
-     AddRequest(result.size());
-     return result;
-}
 
-std::vector<Document>  RequestQueue::AddFindRequest(const  std::string& raw_query, DocumentStatus status) {
+
+std::vector<Document> RequestQueue::AddFindRequest(const  std::string& raw_query, DocumentStatus status) {
     const auto result = search_server_.FindTopDocuments(raw_query, status);
     AddRequest(result.size());
     return result;
 }
 
-std::vector<Document>  RequestQueue::AddFindRequest(const  std::string& raw_query) {
+std::vector<Document> RequestQueue::AddFindRequest(const  std::string& raw_query) {
     const auto result = search_server_.FindTopDocuments(raw_query);
     AddRequest(result.size());
     return result;
 }
 
-int  RequestQueue::GetNoResultRequests() const {
+int RequestQueue::GetNoResultRequests() const {
     return no_results_requests_;
 }
 
-void  RequestQueue::AddRequest(int results_num) {
+void RequestQueue::AddRequest(int results_num) {
     // новый запрос - новая секунда
     ++current_time_;
     // удаляем все результаты поиска, которые устарели
