@@ -1,5 +1,6 @@
 #include "search_server.h"
 
+
 SearchServer::SearchServer(const std::string& stop_words_text)
     : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor
                                                          // from string container
@@ -40,6 +41,9 @@ int SearchServer::GetDocumentId(int index) const {
 
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query,
     int document_id) const{
+
+    
+
     const auto query = ParseQuery(raw_query);
     std::vector<std::string> matched_words;
     for (const std::string& word : query.plus_words) {
@@ -129,4 +133,64 @@ double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) con
     return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 }
 
-    
+const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+    static std::map<std::string, double> result;
+    for (const auto& [key, value] : word_to_document_freqs_) {
+        auto it = value.find(document_id);
+        if (it != value.end()) {
+            result[key] = it->second;
+        }
+    }
+    return result;
+}
+
+void SearchServer::RemoveDocument(int document_id) {
+    std::vector<std::string> vec_words;
+    for (auto& [key, value] : word_to_document_freqs_) {
+        value.erase(document_id);
+        if (value.empty()) {
+            vec_words.push_back(key);
+        }
+    }
+
+    for (auto& word : vec_words) {
+        word_to_document_freqs_.erase(word);
+    }
+
+    documents_.erase(document_id);
+
+    auto it = find(document_ids_.begin(),document_ids_.end(), document_id);
+    if (it != document_ids_.end()) {
+        document_ids_.erase(it);
+    }
+}
+
+/*bool SearchServer::CompareDocumentsWords(int id1, int id2) const {
+    std::vector<std::string> v1, v2;
+    for (const auto& [key, value] : word_to_document_freqs_) {
+        auto it1 = value.find(id1);
+        auto it2 = value.find(id2);
+        if (it1 != value.end()) {
+            v1.push_back(key);
+        }
+        if (it2 != value.end()) {
+            v2.push_back(key);
+        }
+    }
+    return (v1 == v2);
+}*/
+bool SearchServer::CompareDocumentsWords(int id1, int id2) const {
+    std::set<std::string> document_1, document_2;
+    for (const auto& [key, value] : word_to_document_freqs_) {
+        auto it1 = value.find(id1);
+        auto it2 = value.find(id2);
+        if (it1 != value.end()) {
+            document_1.emplace(key);
+        }
+        if (it2 != value.end()) {
+            document_2.emplace(key);
+        }
+    }
+    return (document_1 == document_2);
+}
+

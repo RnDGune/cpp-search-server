@@ -10,6 +10,8 @@
 #include <numeric>
 #include "document.h"
 #include "string_processing.h"
+#include "log_duration.h"
+#include <iterator>
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double EPSILON = 1e-6;
@@ -28,6 +30,16 @@ public:
     int GetDocumentCount() const;
     int GetDocumentId(int index) const;
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+    void RemoveDocument(int document_id);
+    bool CompareDocumentsWords(int id1, int id2) const;
+    auto begin() const {
+        return document_ids_.begin();
+    }
+    auto end() const {
+        return document_ids_.end();
+    }
+
 
 private:
     struct DocumentData {
@@ -38,6 +50,7 @@ private:
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
     std::vector<int> document_ids_;
+
     bool IsStopWord(const std::string& word) const;
     static bool IsValidWord(const std::string& word);
     std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
@@ -73,6 +86,8 @@ SearchServer::SearchServer(const StringContainer& stop_words)
 template <typename DocumentPredicate>
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentPredicate document_predicate) const {
     const auto query = ParseQuery(raw_query);
+
+    
 
     auto matched_documents = FindAllDocuments(query, document_predicate);
 
@@ -118,3 +133,5 @@ std::vector<Document> SearchServer::FindAllDocuments(const SearchServer::Query& 
     }
     return matched_documents;
 }
+
+
