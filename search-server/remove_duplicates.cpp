@@ -1,29 +1,36 @@
 #include "remove_duplicates.h"
 
 void RemoveDuplicates(SearchServer& search_server) {
-    std::vector<int> uniq_documents;// временное хранилище уникальных документов
-    bool flag = 0;// флаг для выхода из цикла
-    std::vector<int> delete_list;//список на удаление
-    for (auto document_id : search_server) { // перебераем все документы из search_servera
+    int flag = 0;
+    std::vector<int> delete_id_list;
+    std::map <int, std::set<std::string>> uniq_documents;
+    for (const auto document_id : search_server) {
         flag = 0;
+        std::set<std::string> uniq_words;
+        auto words_in_document = search_server.GetWordFrequencies(document_id);
+        for (auto words : words_in_document) { // не придумал способ лучше сделать set из ключей map 
+            uniq_words.emplace(words.first);
+        }
         if (uniq_documents.empty()) {
-            uniq_documents.push_back(document_id);
+            uniq_documents.emplace(document_id, uniq_words);
             continue;
         }
-        for (int uniq_document_id : uniq_documents) {
-            if (search_server.CompareDocumentsWords(uniq_document_id, document_id)) { // если документа нет, добовляем в uniq_documents если есть удаляем 
-                delete_list.push_back(document_id);
-                std::cout << "Found duplicate document id " << document_id << std::endl;
-                flag = 1;
-                continue;
+        else {
+            for (auto docs : uniq_documents) {
+                if (uniq_words == docs.second) {
+                    delete_id_list.push_back(document_id);
+                    std::cout << "Found duplicate document id " << document_id << std::endl;
+                    flag = 1;// флажок что документ дублируется 
+                    break;
+                }
             }
         }
-        if (flag) {
-            continue;
+        if (flag != 1) {
+            uniq_documents.emplace(document_id, uniq_words);
         }
-        uniq_documents.push_back(document_id);
     }
-    for (int delete_id : delete_list) {
+    for (int delete_id : delete_id_list) {
         search_server.RemoveDocument(delete_id);
     }
 }
+ 

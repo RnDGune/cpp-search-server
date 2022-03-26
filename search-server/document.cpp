@@ -6,7 +6,7 @@ Document::Document(int id, double relevance, int rating)
     , relevance(relevance)
     , rating(rating) {
 }
-std::ostream& operator<<(std::ostream& out, const Document& document) {
+std::ostream& operator<<(std::ostream & out, const Document & document) {
     out << "{ "
         << "document_id = " << document.id << ", "
         << "relevance = " << document.relevance << ", "

@@ -4,10 +4,10 @@
 SearchServer::SearchServer(const std::string& stop_words_text)
     : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor
                                                          // from string container
-    {
-    }
+{
+}
 
-void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status,const std::vector<int>& ratings){
+void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings) {
     if ((document_id < 0) || (documents_.count(document_id) > 0)) {
         throw std::invalid_argument("Invalid document_id");
     }
@@ -15,13 +15,14 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
     const double inv_word_count = 1.0 / words.size();
     for (const std::string& word : words) {
         word_to_document_freqs_[word][document_id] += inv_word_count;
+        word_in_document_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
-    document_ids_.push_back(document_id);
+    document_ids_.insert(document_id);
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus status) const {
-     return FindTopDocuments(
+    return FindTopDocuments(
         raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
             return document_status == status;
         });
@@ -35,15 +36,8 @@ int SearchServer::GetDocumentCount() const {
     return documents_.size();
 }
 
-int SearchServer::GetDocumentId(int index) const {
-    return document_ids_.at(index);
-}
-
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query,
-    int document_id) const{
-
-    
-
+    int document_id) const {
     const auto query = ParseQuery(raw_query);
     std::vector<std::string> matched_words;
     for (const std::string& word : query.plus_words) {
@@ -65,17 +59,18 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
     }
     return { matched_words, documents_.at(document_id).status };
 }
- 
+
 bool SearchServer::IsStopWord(const std::string& word) const {
     return stop_words_.count(word) > 0;
 }
 
 bool SearchServer::IsValidWord(const std::string& word) {
-     // A valid word must not contain special characters
+    // A valid word must not contain special characters
     return none_of(word.begin(), word.end(), [](char c) {
         return c >= '\0' && c < ' ';
         });
 }
+
 std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& text) const {
     std::vector<std::string> words;
     for (const std::string& word : SplitIntoWords(text)) {
@@ -88,15 +83,13 @@ std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& t
     }
     return words;
 }
+
 int SearchServer::ComputeAverageRating(const std::vector<int>& ratings) {
     int rating_sum = 0;
     rating_sum = std::accumulate(ratings.begin(), ratings.end(), 0);
-    //for (const int rating : ratings) {
-       // rating_sum += rating;
-    //}
     return rating_sum / static_cast<int>(ratings.size());
 }
-    
+
 SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string& text) const {
     if (text.empty()) {
         throw std::invalid_argument("Query word is empty");
@@ -112,10 +105,10 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string& text) co
     }
     return { word, is_minus, IsStopWord(word) };
 }
-   
+
 SearchServer::Query SearchServer::ParseQuery(const std::string& text) const {
-     Query result;
-     for (const std::string& word : SplitIntoWords(text)) {
+    Query result;
+    for (const std::string& word : SplitIntoWords(text)) {
         const auto query_word = ParseQueryWord(word);
         if (!query_word.is_stop) {
             if (query_word.is_minus) {
@@ -125,22 +118,17 @@ SearchServer::Query SearchServer::ParseQuery(const std::string& text) const {
                 result.plus_words.insert(query_word.data);
             }
         }
-     }
-     return result;
+    }
+    return result;
 }
-    // Existence required
+
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) const {
     return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 }
 
-const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
     static std::map<std::string, double> result;
-    for (const auto& [key, value] : word_to_document_freqs_) {
-        auto it = value.find(document_id);
-        if (it != value.end()) {
-            result[key] = it->second;
-        }
-    }
+    result = word_in_document_.at(document_id);
     return result;
 }
 
@@ -152,45 +140,16 @@ void SearchServer::RemoveDocument(int document_id) {
             vec_words.push_back(key);
         }
     }
-
     for (auto& word : vec_words) {
         word_to_document_freqs_.erase(word);
     }
-
     documents_.erase(document_id);
-
-    auto it = find(document_ids_.begin(),document_ids_.end(), document_id);
+    word_in_document_.erase(document_id);
+    auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
     if (it != document_ids_.end()) {
         document_ids_.erase(it);
     }
 }
 
-/*bool SearchServer::CompareDocumentsWords(int id1, int id2) const {
-    std::vector<std::string> v1, v2;
-    for (const auto& [key, value] : word_to_document_freqs_) {
-        auto it1 = value.find(id1);
-        auto it2 = value.find(id2);
-        if (it1 != value.end()) {
-            v1.push_back(key);
-        }
-        if (it2 != value.end()) {
-            v2.push_back(key);
-        }
-    }
-    return (v1 == v2);
-}*/
-bool SearchServer::CompareDocumentsWords(int id1, int id2) const {
-    std::set<std::string> document_1, document_2;
-    for (const auto& [key, value] : word_to_document_freqs_) {
-        auto it1 = value.find(id1);
-        auto it2 = value.find(id2);
-        if (it1 != value.end()) {
-            document_1.emplace(key);
-        }
-        if (it2 != value.end()) {
-            document_2.emplace(key);
-        }
-    }
-    return (document_1 == document_2);
-}
+
 

@@ -5,6 +5,7 @@ std::string ReadLine() {
     std::getline(std::cin, s);
     return s;
 }
+
 int ReadLineWithNumber() {
     int result;
     std::cin >> result;

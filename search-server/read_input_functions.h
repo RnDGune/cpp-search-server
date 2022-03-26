@@ -2,5 +2,5 @@
 #include <string>
 #include <iostream>
 
-std::string Readline();
+std::string ReadLine();
 int ReadLineWithNumber();
