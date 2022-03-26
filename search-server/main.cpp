@@ -86,26 +86,26 @@ void MatchDocuments(const SearchServer& search_server, const string& query) {
     
     FindTopDocuments(search_server, "fancy -cat"s);
 
-    for (const int document_id : search_server) { // РґРѕР±Р°РІР»РµРЅРѕ РґР»СЏ РїСЂРѕРІРµСЂРєРё СЂР°Р±РѕС‚С‹ begin Рё end
-        cout<<"РІС‹РІРѕРґ id: " << document_id << endl;
+    for (const int document_id : search_server) { // добавлено для проверки работы begin и end
+        cout<<"вывод id: " << document_id << endl;
     }
     map<string, double> result = search_server.GetWordFrequencies(1);
     for (auto tmp : result) {
-        cout<< "Р’С‹РІРѕРґ GetWordFrequencies " << tmp.first << " " << tmp.second << endl;
+        cout<< "Вывод GetWordFrequencies " << tmp.first << " " << tmp.second << endl;
     }
 
     search_server.RemoveDocument(1);
     
 
-    // 1439 Р·Р°РїСЂРѕСЃРѕРІ СЃ РЅСѓР»РµРІС‹Рј СЂРµР·СѓР»СЊС‚Р°С‚РѕРј
+    // 1439 запросов с нулевым результатом
     for (int i = 0; i < 1439; ++i) {
         request_queue.AddFindRequest("empty request"s);
     }
-    // РІСЃРµ РµС‰Рµ 1439 Р·Р°РїСЂРѕСЃРѕРІ СЃ РЅСѓР»РµРІС‹Рј СЂРµР·СѓР»СЊС‚Р°С‚РѕРј
+    // все еще 1439 запросов с нулевым результатом
     request_queue.AddFindRequest("curly dog"s);
-    // РЅРѕРІС‹Рµ СЃСѓС‚РєРё, РїРµСЂРІС‹Р№ Р·Р°РїСЂРѕСЃ СѓРґР°Р»РµРЅ, 1438 Р·Р°РїСЂРѕСЃРѕРІ СЃ РЅСѓР»РµРІС‹Рј СЂРµР·СѓР»СЊС‚Р°С‚РѕРј
+    // новые сутки, первый запрос удален, 1438 запросов с нулевым результатом
     request_queue.AddFindRequest("big collar"s);
-    // РїРµСЂРІС‹Р№ Р·Р°РїСЂРѕСЃ СѓРґР°Р»РµРЅ, 1437 Р·Р°РїСЂРѕСЃРѕРІ СЃ РЅСѓР»РµРІС‹Рј СЂРµР·СѓР»СЊС‚Р°С‚РѕРј
+    // первый запрос удален, 1437 запросов с нулевым результатом
     request_queue.AddFindRequest("sparrow"s);
     cout << "Total empty requests: "s << request_queue.GetNoResultRequests() << endl;
 }*/
@@ -115,25 +115,25 @@ int main() {
     AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
     AddDocument(search_server, 2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РґСѓР±Р»РёРєР°С‚ РґРѕРєСѓРјРµРЅС‚Р° 2, Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ
+    // дубликат документа 2, будет удалён
     AddDocument(search_server, 3, "funny pet with curly hair"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РѕС‚Р»РёС‡РёРµ С‚РѕР»СЊРєРѕ РІ СЃС‚РѕРї-СЃР»РѕРІР°С…, СЃС‡РёС‚Р°РµРј РґСѓР±Р»РёРєР°С‚РѕРј
+    // отличие только в стоп-словах, считаем дубликатом
     AddDocument(search_server, 4, "funny pet and curly hair"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РјРЅРѕР¶РµСЃС‚РІРѕ СЃР»РѕРІ С‚Р°РєРѕРµ Р¶Рµ, СЃС‡РёС‚Р°РµРј РґСѓР±Р»РёРєР°С‚РѕРј РґРѕРєСѓРјРµРЅС‚Р° 1
+    // множество слов такое же, считаем дубликатом документа 1
     AddDocument(search_server, 5, "funny funny pet and nasty nasty rat"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РґРѕР±Р°РІРёР»РёСЃСЊ РЅРѕРІС‹Рµ СЃР»РѕРІР°, РґСѓР±Р»РёРєР°С‚РѕРј РЅРµ СЏРІР»СЏРµС‚СЃСЏ
+    // добавились новые слова, дубликатом не является
     AddDocument(search_server, 6, "funny pet and not very nasty rat"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РјРЅРѕР¶РµСЃС‚РІРѕ СЃР»РѕРІ С‚Р°РєРѕРµ Р¶Рµ, РєР°Рє РІ id 6, РЅРµСЃРјРѕС‚СЂСЏ РЅР° РґСЂСѓРіРѕР№ РїРѕСЂСЏРґРѕРє, СЃС‡РёС‚Р°РµРј РґСѓР±Р»РёРєР°С‚РѕРј
+    // множество слов такое же, как в id 6, несмотря на другой порядок, считаем дубликатом
     AddDocument(search_server, 7, "very nasty rat and not very funny pet"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // РµСЃС‚СЊ РЅРµ РІСЃРµ СЃР»РѕРІР°, РЅРµ СЏРІР»СЏРµС‚СЃСЏ РґСѓР±Р»РёРєР°С‚РѕРј
+    // есть не все слова, не является дубликатом
     AddDocument(search_server, 8, "pet with rat and rat and rat"s, DocumentStatus::ACTUAL, { 1, 2 });
 
-    // СЃР»РѕРІР° РёР· СЂР°Р·РЅС‹С… РґРѕРєСѓРјРµРЅС‚РѕРІ, РЅРµ СЏРІР»СЏРµС‚СЃСЏ РґСѓР±Р»РёРєР°С‚РѕРј
+    // слова из разных документов, не является дубликатом
     AddDocument(search_server, 9, "nasty rat with curly hair"s, DocumentStatus::ACTUAL, { 1, 2 });
 
     cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
