@@ -8,7 +8,7 @@ void RemoveDuplicates(SearchServer& search_server) {
         flag = 0;
         std::set<std::string> uniq_words;
         auto words_in_document = search_server.GetWordFrequencies(document_id);
-        for (auto words : words_in_document) { // не придумал способ лучше сделать set из ключей map 
+        for (auto words : words_in_document) { 
             uniq_words.emplace(words.first);
         }
         if (uniq_documents.empty()) {
@@ -20,7 +20,7 @@ void RemoveDuplicates(SearchServer& search_server) {
                 if (uniq_words == docs.second) {
                     delete_id_list.push_back(document_id);
                     std::cout << "Found duplicate document id " << document_id << std::endl;
-                    flag = 1;// флажок что документ дублируется 
+                    flag = 1;
                     break;
                 }
             }
@@ -33,4 +33,4 @@ void RemoveDuplicates(SearchServer& search_server) {
         search_server.RemoveDocument(delete_id);
     }
 }
- 
+

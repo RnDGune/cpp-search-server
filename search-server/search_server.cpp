@@ -15,7 +15,7 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
     const double inv_word_count = 1.0 / words.size();
     for (const std::string& word : words) {
         word_to_document_freqs_[word][document_id] += inv_word_count;
-        word_in_document_[document_id][word] += inv_word_count;
+        document_to_word_freqs_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
     document_ids_.insert(document_id);
@@ -127,28 +127,24 @@ double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) con
 }
 
  const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
-    static std::map<std::string, double> result;
-    result = word_in_document_.at(document_id);
-    return result;
+    static std::map<std::string, double> empty_map;
+    if (document_to_word_freqs_.count(document_id) != 0) {
+        return document_to_word_freqs_.at(document_id);
+    }
+    else {
+        return empty_map;
+    }
+    
 }
 
 void SearchServer::RemoveDocument(int document_id) {
-    std::vector<std::string> vec_words;
-    for (auto& [key, value] : word_to_document_freqs_) {
-        value.erase(document_id);
-        if (value.empty()) {
-            vec_words.push_back(key);
-        }
-    }
-    for (auto& word : vec_words) {
-        word_to_document_freqs_.erase(word);
+    for (const auto words : document_to_word_freqs_.at(document_id)) {
+        word_to_document_freqs_.erase(words.first);
     }
     documents_.erase(document_id);
-    word_in_document_.erase(document_id);
-    auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
-    if (it != document_ids_.end()) {
-        document_ids_.erase(it);
-    }
+    document_to_word_freqs_.erase(document_id);
+    document_ids_.erase(document_id);
+   
 }
 
 
