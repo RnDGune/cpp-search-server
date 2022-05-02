@@ -13,7 +13,7 @@ public:
     // заменим имя типа std::chrono::steady_clock
     // с помощью using для удобства
     using Clock = std::chrono::steady_clock;
-    LogDuration(const std::string& id, std::ostream& out = std::cerr)
+    LogDuration(const std::string_view id, std::ostream& out = std::cerr)
         : id_(id),
         out_(out)
     {

@@ -3,11 +3,11 @@
 void RemoveDuplicates(SearchServer& search_server) {
     int flag = 0;
     std::vector<int> delete_id_list;
-    std::map <int, std::set<std::string>> uniq_documents;// но если брать просто set, тогда дубликатом будет считается документ в котором 
-    for (const auto document_id : search_server) {      // есть слова из нескольких разныъ предыдущих документов. 
-        flag = 0;                                      //  На пример документ 9 из main будет считатся дубликатом.
-        std::set<std::string> uniq_words;              // Поэтому я и сделал ключом Id, тогда мы храним пары <id,слова>, и дубликатом будет документ
-        auto words_in_document = search_server.GetWordFrequencies(document_id); // в котором слова совпадают со строго одним уже существующим докуемнтом.
+    std::map <int, std::set<std::string>> uniq_documents;
+    for (const auto document_id : search_server) {
+        flag = 0;
+        std::set<std::string> uniq_words;
+        auto words_in_document = search_server.GetWordFrequencies(document_id);
         for (auto words : words_in_document) { 
             uniq_words.emplace(words.first);
         }
