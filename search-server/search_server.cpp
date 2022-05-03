@@ -55,9 +55,9 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
     const auto query = ParseQuery(std::execution::seq, raw_query);
     std::vector<std::string_view> matched_words(query.plus_words.size());
     if (document_ids_.count(document_id) == 0) { return { {}, {} }; }
-    const auto& m = GetWordFrequencies(document_id);
-    auto word_checker = [&m](const auto word) {
-        return m.count(word);
+    const auto& words_freq = GetWordFrequencies(document_id);
+    auto word_checker = [&words_freq](const auto word) {
+        return words_freq.count(word);
     };
 
     bool is_minus_word = any_of(std::execution::seq, query.minus_words.begin(), query.minus_words.end(), word_checker);
@@ -78,9 +78,9 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
     const auto query = ParseQuery(std::execution::par, raw_query);
     std::vector<std::string_view> matched_words(query.plus_words.size());
     if (document_ids_.count(document_id) == 0) { return { {}, {} }; }
-    const auto& m = GetWordFrequencies(document_id);
-    auto word_checker = [&m](const auto word) {
-        return m.count(word);
+    const auto& words_freq = GetWordFrequencies(document_id);
+    auto word_checker = [&words_freq](const auto word) {
+        return words_freq.count(word);
     };
 
     bool is_minus_word = any_of(std::execution::seq, query.minus_words.begin(), query.minus_words.end(), word_checker);
@@ -153,7 +153,11 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string_view text
 
 
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string_view word) const {
+    if (word_to_document_freqs_.at(word).size() == 0) {
+        throw std::invalid_argument("The word is missing from the document");
+    }
     return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
+  
 }
 
  const std::map<std::string_view, double>& SearchServer::GetWordFrequencies(int document_id) const {
@@ -161,29 +165,26 @@ double SearchServer::ComputeWordInverseDocumentFreq(const std::string_view word)
     if (document_to_word_freqs_.count(document_id) != 0) {
         return document_to_word_freqs_.at(document_id);
     }
-    else {
-        return empty_map;
-    }
-    
+    return empty_map;
 }
 
  void SearchServer::RemoveDocument(int document_id) {
      std::vector<std::string_view> vec_words;
-     for (auto& [key, value] : word_to_document_freqs_) {
-         value.erase(document_id);
-         if (value.empty()) {
-             vec_words.push_back(key);
-         }
+     if (document_to_word_freqs_.count(document_id) == 0) {
+         return;
+     }
+     for (auto& [key, value] : document_to_word_freqs_.at(document_id)) {
+             vec_words.push_back(key);        
      }
      for (auto& word : vec_words) {
          word_to_document_freqs_.erase(word);
      }
      documents_.erase(document_id);
      document_to_word_freqs_.erase(document_id);
-     auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
-     if (it != document_ids_.end()) {
-         document_ids_.erase(it);
-     }
+     //auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
+     //if (it != document_ids_.end()) {
+     document_ids_.erase(document_id);
+     //}
     
  }
 
@@ -206,23 +207,7 @@ void SearchServer::RemoveDocument(const std::execution::parallel_policy& policy,
 }
 
 void SearchServer::RemoveDocument(const std::execution::sequenced_policy& policy, int document_id) {
-    std::vector<std::string_view> vec_words;
-    for (auto& [key, value] : word_to_document_freqs_) {
-        value.erase(document_id);
-        if (value.empty()) {
-            vec_words.push_back(key);
-        }
-    }
-    for (auto& word : vec_words) {
-        word_to_document_freqs_.erase(word);
-    }
-    documents_.erase(document_id);
-    document_to_word_freqs_.erase(document_id);
-    auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
-    if (it != document_ids_.end()) {
-        document_ids_.erase(it);
-    }
-    
+    return SearchServer::RemoveDocument(document_id);
 }
 
 

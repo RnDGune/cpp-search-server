@@ -116,7 +116,7 @@ private:
     std::vector<Document> FindAllDocuments(const Query&,DocumentPredicate) const;
 };
 
-template <typename ExecutionPolicy, typename ForwardRange, typename Function>
+/*template <typename ExecutionPolicy, typename ForwardRange, typename Function>
 void ForEach(const ExecutionPolicy& policy, ForwardRange& range, Function function)
 {
     if constexpr (
@@ -156,7 +156,7 @@ template <typename ForwardRange, typename Function>
 void ForEach(ForwardRange& range, Function function)
 {
     ForEach(std::execution::seq, range, function);
-}
+}*/
 
 template <typename StringContainer>
 SearchServer::SearchServer(const StringContainer& stop_words)
@@ -267,8 +267,7 @@ std::vector<Document> SearchServer::FindAllDocuments(std::execution::parallel_po
 {
     std::vector<Document> matched_documents;
     ConcurrentMap<int, double> document_to_relevance(BUCKETS_NUM);
-    ForEach(policy,
-        query.plus_words,
+    std::for_each(policy, query.plus_words.begin(),query.plus_words.end(),
         [this, &document_to_relevance, &document_predicate](std::string_view word)
         {
             if (!word_to_document_freqs_.count(word) == 0)
@@ -285,8 +284,8 @@ std::vector<Document> SearchServer::FindAllDocuments(std::execution::parallel_po
             }
         }
     );
-    ForEach(policy,
-        query.minus_words,
+    std::for_each(policy,
+        query.minus_words.begin(), query.minus_words.end(),
         [this, &document_to_relevance](std::string_view word)
         {
             if (!word_to_document_freqs_.count(word) == 0)
@@ -313,6 +312,9 @@ std::vector<Document> SearchServer::FindAllDocuments(const SearchServer::Query& 
     return SearchServer::FindAllDocuments(std::execution::seq, query, document_predicate);
 }
 
+// шаблность добавил что-бы не запутатся,т.к. сортировать надо только в par верси
+// + хотелось выражение "if constexpr (!std::is_same_v<ExecutionPolicy, std::execution::parallel_policy>)" 
+// еще поиспользовать 
 template <typename ExecutionPolicy>
 SearchServer::Query SearchServer::ParseQuery(ExecutionPolicy&& policy, std::string_view text) const
 {
