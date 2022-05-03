@@ -22,7 +22,7 @@
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double EPSILON = 1e-6;
-const size_t BUCKETS_NUM = 8; // число разбиений
+const size_t BUCKETS_NUM = 8; // Г·ГЁГ±Г«Г® Г°Г Г§ГЎГЁГҐГ­ГЁГ©
 
 class SearchServer {
 public:
@@ -115,48 +115,6 @@ private:
     template <typename DocumentPredicate>
     std::vector<Document> FindAllDocuments(const Query&,DocumentPredicate) const;
 };
-
-/*template <typename ExecutionPolicy, typename ForwardRange, typename Function>
-void ForEach(const ExecutionPolicy& policy, ForwardRange& range, Function function)
-{
-    if constexpr (
-        std::is_same_v<ExecutionPolicy, std::execution::sequenced_policy>
-        || std::is_same_v<typename std::iterator_traits<typename ForwardRange::iterator>::iterator_category,
-        std::random_access_iterator_tag>
-        )
-    {
-        std::for_each(policy, range.begin(), range.end(), function);
-    }
-    else
-    {
-        static constexpr int PART_COUNT = 16;
-        const auto part_length = size(range) / PART_COUNT;
-        auto part_begin = range.begin();
-        auto part_end = next(part_begin, part_length);
-
-        std::vector<std::future<void>> futures;
-        for (int i = 0;
-            i < PART_COUNT;
-            ++i,
-            part_begin = part_end,
-            part_end = (i == PART_COUNT - 1
-                ? range.end()
-                : next(part_begin, part_length))
-            )
-        {
-            futures.push_back(async([function, part_begin, part_end]
-                {
-                    for_each(part_begin, part_end, function);
-                }));
-        }
-    }
-}
-
-template <typename ForwardRange, typename Function>
-void ForEach(ForwardRange& range, Function function)
-{
-    ForEach(std::execution::seq, range, function);
-}*/
 
 template <typename StringContainer>
 SearchServer::SearchServer(const StringContainer& stop_words)
@@ -312,9 +270,9 @@ std::vector<Document> SearchServer::FindAllDocuments(const SearchServer::Query& 
     return SearchServer::FindAllDocuments(std::execution::seq, query, document_predicate);
 }
 
-// шаблность добавил что-бы не запутатся,т.к. сортировать надо только в par верси
-// + хотелось выражение "if constexpr (!std::is_same_v<ExecutionPolicy, std::execution::parallel_policy>)" 
-// еще поиспользовать 
+// С€Р°Р±Р»РЅРѕСЃС‚СЊ РґРѕР±Р°РІРёР» С‡С‚Рѕ-Р±С‹ РЅРµ Р·Р°РїСѓС‚Р°С‚СЃСЏ,С‚.Рє. СЃРѕСЂС‚РёСЂРѕРІР°С‚СЊ РЅР°РґРѕ С‚РѕР»СЊРєРѕ РІ par РІРµСЂСЃРё
+// + С…РѕС‚РµР»РѕСЃСЊ РІС‹СЂР°Р¶РµРЅРёРµ "if constexpr (!std::is_same_v<ExecutionPolicy, std::execution::parallel_policy>)" 
+// РµС‰Рµ РїРѕРёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ 
 template <typename ExecutionPolicy>
 SearchServer::Query SearchServer::ParseQuery(ExecutionPolicy&& policy, std::string_view text) const
 {
