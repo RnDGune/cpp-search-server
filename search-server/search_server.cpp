@@ -173,19 +173,15 @@ double SearchServer::ComputeWordInverseDocumentFreq(const std::string_view word)
      if (document_to_word_freqs_.count(document_id) == 0) {
          return;
      }
-     for (auto& [key, value] : document_to_word_freqs_.at(document_id)) {
-             vec_words.push_back(key);        
-     }
-     for (auto& word : vec_words) {
-         word_to_document_freqs_.erase(word);
+     for (const auto& [word,freq] : document_to_word_freqs_.at(document_id)) {
+         word_to_document_freqs_.at(word).erase(document_id);
+         if (word_to_document_freqs_.at(word).empty()) { //удалить если у слова больше нет документов
+             word_to_document_freqs_.erase(word);
+         }
      }
      documents_.erase(document_id);
      document_to_word_freqs_.erase(document_id);
-     //auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
-     //if (it != document_ids_.end()) {
-     document_ids_.erase(document_id);
-     //}
-    
+     document_ids_.erase(document_id);   
  }
 
 void SearchServer::RemoveDocument(const std::execution::parallel_policy& policy, int document_id) {
